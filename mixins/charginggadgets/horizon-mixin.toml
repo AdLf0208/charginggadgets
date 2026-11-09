@@ -1,0 +1,193 @@
+[mod]
+id = "charginggadgets"
+version = "1.14.1"
+priority = 100
+
+[compatibility]
+horizon_revision = "1d63e0a5a37a7a708eb0b32b49bf0dfeb28ed8a9"
+
+# The pure station arithmetic (standalone crate lib, injected as
+# `crate::game::charginggadgets`): the fuel burn, the charge step and the menu's
+# data slots.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "charginggadgets"
+source = "runtime.rs"
+
+# Game-side glue: the block entity, its container/menu, the tick, the screen,
+# the item buffer, the tooltip, placement and the harness commands.
+[[module]]
+id = "state"
+file = "crates/horizon-client/src/game.rs"
+name = "charginggadgets_state"
+source = "support.rs"
+
+# The content half is inside this bundle (`data/charginggadgets-content.hmod`, the built
+# `content/charginggadgets.hmod`): this writes it to `.horizon-cache/` and appends it to the
+# dev-mod list, so one `.hnmod` installs the block and the code. The registry keeps one file per
+# project, so a split port could not be listed; AE2 ships the same pattern.
+[[injection]]
+id = "embedded-content"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::mods::content_root"
+helper = "embedded_content.rs"
+bindings = [
+  { name = "root", ty = "&std::path::Path", value = "root" },
+  { name = "enabled", ty = "&std::collections::BTreeSet<String>", value = "enabled" },
+  { name = "dev", ty = "&[std::path::PathBuf]", value = "dev" },
+]
+
+# The station block gets a block entity (API 15).
+[[injection]]
+id = "block-entity"
+hook = "block_entity"
+hook_version = 1
+kind = "HEAD"
+helper = "block_entity.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "entity", ty = "&mut Option<(String, horizon_world::nbt::Compound)>", value = "entity" },
+]
+
+# ... and ticks on the server (API 15).
+[[injection]]
+id = "block-entity-ticks"
+hook = "block_entity_ticks"
+hook_version = 1
+kind = "HEAD"
+helper = "block_entity_ticks.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "ticks", ty = "&mut bool", value = "ticks" },
+]
+
+# Two slots — fuel 0, charge 1 — and the station's menu (API 16/17).
+[[injection]]
+id = "block-entity-container"
+hook = "block_entity_container"
+hook_version = 1
+kind = "HEAD"
+helper = "block_entity_container.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "container", ty = "&mut Option<horizon_client::containers::ModContainer>", value = "container" },
+]
+
+# The FE buffer (API 142): `Capabilities.Energy.BLOCK`, 1,000,000 FE, inserts
+# only, as `ChargerEnergyStorage` takes and never gives.
+[[injection]]
+id = "block-entity-energy"
+hook = "block_entity_energy"
+hook_version = 1
+kind = "HEAD"
+helper = "block_entity_energy.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "energy", ty = "&mut Option<horizon_client::containers::ModEnergyBuffer>", value = "energy" },
+]
+
+# The station's own tick: burn fuel, then charge the item in slot 1 (API 17).
+[[injection]]
+id = "block-entity-tick"
+hook = "block_entity_tick"
+hook_version = 1
+kind = "HEAD"
+helper = "block_entity_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "entity", ty = "&mut horizon_client::containers::ModBlockEntity", value = "entity" },
+]
+
+# The station menu's two slots (API 19).
+[[injection]]
+id = "screen"
+hook = "screen"
+hook_version = 1
+kind = "HEAD"
+helper = "screen.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "screen", ty = "&mut Option<NativeScreen>", value = "screen" },
+]
+
+# ... and its energy and burn readout (API 19).
+[[injection]]
+id = "screen-draw"
+hook = "screen_draw"
+hook_version = 1
+kind = "HEAD"
+helper = "screen_draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "block", ty = "&str", value = "block" },
+  { name = "data", ty = "&[i32]", value = "data" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" },
+  { name = "origin", ty = "[f32; 2]", value = "origin" },
+]
+
+# The station item keeps the block's charge (API 307): upstream's
+# `charginggadgets:energy` component, as a real `Capabilities.Energy.ITEM`
+# buffer, so placing the item fills the block again.
+[[injection]]
+id = "item-energy-buffer"
+hook = "item_energy_buffer"
+hook_version = 1
+kind = "HEAD"
+helper = "item_energy_buffer.rs"
+bindings = [
+  { name = "item", ty = "&str", value = "item" },
+  { name = "buffer", ty = "&mut Option<horizon_client::game::ItemEnergyBuffer>", value = "buffer" },
+]
+
+# A charged station item fills the block it is placed as (`updateCustomBlockEntityTag`).
+[[injection]]
+id = "place-block"
+hook = "place_block"
+hook_version = 1
+kind = "HEAD"
+helper = "place_block.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# The item's own tooltip: "Energy: x/y FE" (API 12).
+[[injection]]
+id = "tooltip"
+hook = "tooltip"
+hook_version = 1
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "lines" },
+]
+
+# `/charginggadgets info|energy|item` (API 8).
+[[injection]]
+id = "register-commands"
+hook = "register_commands"
+hook_version = 1
+kind = "HEAD"
+helper = "register_commands.rs"
+bindings = [
+  { name = "commands", ty = "&mut Vec<NativeCommand>", value = "commands" },
+]
+
+[[injection]]
+id = "perform-command"
+hook = "perform_command"
+hook_version = 1
+kind = "HEAD"
+helper = "perform_command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "&NativeServerPlayer", value = "player" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "ran" },
+]
