@@ -1,0 +1,6 @@
+{
+  "model": {
+    "model": "charginggadgets:item/charging_station",
+    "type": "minecraft:model"
+  }
+}

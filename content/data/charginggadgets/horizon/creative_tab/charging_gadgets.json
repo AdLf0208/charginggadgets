@@ -1,0 +1,7 @@
+{
+  "icon": "charginggadgets:charging_station",
+  "items": [
+    "charginggadgets:charging_station"
+  ],
+  "title": "itemGroup.charginggadgets"
+}
