@@ -1,0 +1,17 @@
+[package]
+# Ported from: Charging Gadgets 1.14.1 (Direwolf20-MC/ChargingGadgets, MIT),
+# Minecraft Java 1.21.1 NeoForge. Local-only until the maintainer approves.
+name = "horizon-charginggadgets"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+description = "Charging Gadgets for Horizon: a fuelled station that fills an item's FE buffer"
+
+[lib]
+# This exact source is also injected as a same-crate module by horizon-mixins.
+path = "mixins/charginggadgets/runtime.rs"
+
+[workspace]
+members = ["tools/audit"]
+resolver = "2"

@@ -1,0 +1,10 @@
+# Port-owned content mod for the Charging Gadgets 1.14.1 slice: the charging
+# station block, its menu, and the carried assets/data. The models, textures,
+# blockstate, lang file, loot table and recipe are upstream's own MIT assets,
+# read from the exact ATM10 jar (see ../../_shared/carry-work/charginggadgets/SOURCE.md).
+id = "charginggadgets"
+name = "Charging Gadgets"
+version = "0.1.0"
+api = "0.2"
+side = "both"
+capabilities = ["registries"]
